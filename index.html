@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kokoa Bar – ช็อกโกแลตแท่งคราฟต์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@600;800&family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#2a1a14;--ink:#f6ebdd;--muted:#c9b29c;--panel:#3a251c;--gold:#e0a83c;--line:#5a3d2e;--cocoa:#4b2e22}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans Thai',sans-serif;line-height:1.7}
+h1,h2,h3{font-family:'Noto Serif Thai',serif;line-height:1.25;margin:0}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+header.hero{padding:64px 0 40px;background:repeating-linear-gradient(90deg,var(--cocoa) 0 120px,#42291e 120px 124px)}
+.hero h1{font-size:clamp(2.4rem,8vw,4.6rem);font-weight:800;letter-spacing:.01em}
+.hero p{max-width:34ch;color:var(--muted);font-size:1.1rem;margin:16px 0 28px}
+.btn{display:inline-block;background:var(--gold);color:#2a1a14;font-weight:700;border:0;border-radius:6px;padding:14px 26px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+section{padding:48px 0}
+h2{font-size:1.8rem;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card .img{aspect-ratio:4/3;background:var(--cocoa) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:3rem}
+.card .body{padding:18px 20px 22px}
+.card h3{font-size:1.25rem}
+.card .meta{color:var(--muted);font-size:.95rem;margin:6px 0 12px}
+.price{color:var(--gold);font-weight:700;font-size:1.3rem}
+.qty{display:flex;align-items:center;gap:10px;margin-top:14px}
+.qty button{width:36px;height:36px;border-radius:6px;border:1px solid var(--line);background:var(--cocoa);color:var(--ink);font-size:1.2rem;cursor:pointer}
+.qty output{min-width:28px;text-align:center;font-weight:700}
+form{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;display:grid;gap:16px;max-width:560px}
+label{display:grid;gap:6px;font-weight:500}
+input,textarea{font:inherit;padding:12px;border-radius:6px;border:1px solid var(--line);background:#2a1a14;color:var(--ink);width:100%}
+.sum{display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;border-top:1px solid var(--line);padding-top:14px}
+#msg{min-height:1.5em;font-weight:500}
+#msg.ok{color:#8fd694}#msg.err{color:#ff9b8a}
+footer{padding:32px 0;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <h1>Kokoa Bar</h1>
+  <p>ช็อกโกแลตแท่งจากเมล็ดโกโก้คัดพิเศษ ทำเป็นล็อตเล็ก ส่งตรงถึงบ้านคุณ</p>
+  <a class="btn" href="#order">สั่งซื้อเลย</a>
+</div></header>
+
+<main class="wrap">
+<section id="products">
+  <h2>เลือกแท่งที่ชอบ</h2>
+  <div class="grid" id="grid"></div>
+</section>
+
+<section id="order">
+  <h2>กรอกข้อมูลจัดส่ง</h2>
+  <form id="f">
+    <label>ชื่อ-นามสกุล<input name="name" required autocomplete="name"></label>
+    <label>เบอร์โทร<input name="phone" required inputmode="tel" pattern="[0-9\-\s]{9,12}" autocomplete="tel"></label>
+    <label>ที่อยู่จัดส่ง (รวมรหัสไปรษณีย์)<textarea name="address" rows="3" required autocomplete="street-address"></textarea></label>
+    <div class="sum"><span>ยอดรวม</span><span id="total">฿0</span></div>
+    <button class="btn" type="submit" id="sub">ยืนยันคำสั่งซื้อ</button>
+    <div id="msg" role="status"></div>
+  </form>
+</section>
+</main>
+<footer><div class="wrap">Kokoa Bar · งานฝึกปฏิบัติวิชา LSM21367</div></footer>
+
+<script>
+// ===== ตั้งค่า: แก้จุดเดียว =====
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxukOog_OIUqCYTrWpVe0aNR-kdHbXWCtHVxs_b_lfMfPM95j40TbQIov_YYdAh-V5W/exec";
+const IMG_DIR = "images/"; // โฟลเดอร์รูปใน GitHub (ชื่อไฟล์มาจากคอลัมน์ image ในชีต Products)
+// =================================
+let PRODUCTS = [], qty = {};
+const grid = document.getElementById('grid');
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function total(){return PRODUCTS.reduce((t,p)=>t+(qty[p.sku]||0)*p.price,0)}
+function render(){
+  grid.innerHTML = PRODUCTS.map(p=>`
+  <article class="card">
+    <div class="img" style="background-image:url('${IMG_DIR}${encodeURI(p.image)}')" role="img" aria-label="${esc(p.name)}"></div>
+    <div class="body">
+      <h3>${esc(p.name)}</h3>
+      <div class="meta">${esc(p.desc)} · รหัส ${esc(p.sku)}${p.stock<=0?' · สินค้าหมด':''}</div>
+      <div class="price">฿${p.price}</div>
+      <div class="qty">
+        <button type="button" data-s="${esc(p.sku)}" data-d="-1" aria-label="ลดจำนวน ${esc(p.name)}">−</button>
+        <output id="q-${esc(p.sku)}">0</output>
+        <button type="button" data-s="${esc(p.sku)}" data-d="1" aria-label="เพิ่มจำนวน ${esc(p.name)}" ${p.stock<=0?'disabled':''}>+</button>
+      </div>
+    </div>
+  </article>`).join('');
+}
+async function load(){
+  try{
+    const r = await fetch(SCRIPT_URL); PRODUCTS = (await r.json()).map(p=>({...p,price:Number(p.price),stock:Number(p.stock)}));
+  }catch(e){
+    grid.innerHTML = '<p>โหลดข้อมูลสินค้าไม่สำเร็จ กรุณารีเฟรชหน้า</p>'; return;
+  }
+  PRODUCTS.forEach(p=>qty[p.sku]=0); render();
+}
+grid.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-s]'); if(!b)return;
+  const p=PRODUCTS.find(x=>x.sku===b.dataset.s);
+  qty[p.sku]=Math.max(0,Math.min(p.stock,qty[p.sku]+Number(b.dataset.d)));
+  document.getElementById('q-'+p.sku).textContent=qty[p.sku];
+  document.getElementById('total').textContent='฿'+total();
+});
+document.getElementById('f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const msg=document.getElementById('msg'), sub=document.getElementById('sub');
+  if(total()===0){msg.className='err';msg.textContent='กรุณาเลือกสินค้าอย่างน้อย 1 ชิ้น';return}
+  const fd=new FormData(e.target);
+  const body=new URLSearchParams({
+    name:fd.get('name'),phone:fd.get('phone'),address:fd.get('address'),
+    items:JSON.stringify(PRODUCTS.filter(p=>qty[p.sku]>0).map(p=>({sku:p.sku,qty:qty[p.sku]})))
+  });
+  sub.disabled=true; msg.className=''; msg.textContent='กำลังส่งคำสั่งซื้อ…';
+  try{
+    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',body});
+    msg.className='ok'; msg.textContent='ส่งคำสั่งซื้อเรียบร้อยแล้ว ขอบคุณค่ะ';
+    e.target.reset(); PRODUCTS.forEach(p=>qty[p.sku]=0); document.getElementById('total').textContent='฿0';
+    await load();
+  }catch(err){msg.className='err';msg.textContent='ส่งไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง'}
+  sub.disabled=false;
+});
+load();
+</script>
+</body>
+</html>
